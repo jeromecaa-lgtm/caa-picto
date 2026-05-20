@@ -154,7 +154,7 @@ export default function AppPage() {
         url = options[0].url;
       }
     }
-    return { word, url, id: Date.now() + Math.random() };
+    return { word, url, id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` };
   }
 
   function showModal(word, options) {
