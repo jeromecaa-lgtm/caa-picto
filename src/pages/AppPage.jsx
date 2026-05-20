@@ -8,6 +8,20 @@ import Toast from '../components/Toast';
 import { useProfile } from '../context/ProfileContext';
 import { searchPictograms, pictogramUrl } from '../lib/arasaac';
 import { speak, stopSpeaking } from '../lib/speech';
+
+async function analyzeWithAI(text, categories) {
+  try {
+    const r = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, categories }),
+    });
+    const data = await r.json();
+    return data.words || [];
+  } catch (e) {
+    return [];
+  }
+}
 import '../styles/app.css';
 
 const PICTO_SIZES = { small: 48, medium: 72, large: 100, xlarge: 140 };
@@ -93,8 +107,15 @@ export default function AppPage() {
     if (person?.show_verbs) cats.push('verb');
     if (person?.show_qualifiers) cats.push('qualifier');
 
-    const words = fallbackAnalysis(text);
-    const orderedWords = words.filter(item => cats.includes(item.category));
+    let orderedWords = [];
+    if (person?.use_ai) {
+      const aiWords = await analyzeWithAI(text, cats);
+      orderedWords = aiWords.filter(item => cats.includes(item.category));
+    }
+    if (!orderedWords.length) {
+      const words = fallbackAnalysis(text);
+      orderedWords = words.filter(item => cats.includes(item.category));
+    }
 
     if (currentRef.current) {
       setHistory(h => [currentRef.current, ...h].slice(0, 3));
