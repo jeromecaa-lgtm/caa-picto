@@ -121,7 +121,7 @@ export default function AppPage() {
       setHistory(h => [currentRef.current, ...h].slice(0, 3));
     }
 
-    const newEntry = { id: Date.now(), text, pictos: [] };
+    const newEntry = { id: `${Date.now()}-${Math.random().toString(36).substr(2,9)}`, text, pictos: [] };
     currentRef.current = newEntry;
     setCurrent({ ...newEntry });
 
