@@ -152,7 +152,7 @@ export default function UserProfilePanel({ onClose }) {
     setAccesses(a => a.map(x => x.id === updated.id ? { ...x, ...updated } : x));
   }
 
-  const isOwner = accesses.find(a => a.user_id === user?.id)?.role === 'owner';
+  const isOwner = currentPerson?.role === 'owner';
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
