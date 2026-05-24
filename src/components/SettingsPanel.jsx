@@ -80,14 +80,35 @@ export default function SettingsPanel({ onClose, onManageChoices }) {
   const { currentPerson, savePerson, persons } = useProfile();
   const { user } = useAuth();
 
-  // Trouver les permissions du login courant sur cette personne
-  const myAccess = persons?.find ? null : null; // sera chargé via context
   const isOwner = currentPerson?.role === 'owner';
-  const isAdmin = isOwner || currentPerson?.is_admin;
+  const isAdmin = isOwner || !!currentPerson?.is_admin;
 
   function canEdit(key) {
     if (isOwner || isAdmin) return true;
     return !!currentPerson?.[key];
+  }
+
+  // Filtrer les updates selon les permissions réelles
+  function filterUpdates(updates) {
+    if (isOwner || isAdmin) return updates;
+    const allowed = {};
+    if (canEdit('can_edit_complexity')) {
+      allowed.show_core = updates.show_core;
+      allowed.show_verbs = updates.show_verbs;
+      allowed.show_qualifiers = updates.show_qualifiers;
+      allowed.complexity = updates.complexity;
+    }
+    if (canEdit('can_edit_display')) {
+      allowed.display_speed_ms = updates.display_speed_ms;
+      allowed.max_pictograms = updates.max_pictograms;
+      allowed.picto_size = updates.picto_size;
+      allowed.voice_type = updates.voice_type;
+    }
+    if (canEdit('can_edit_accessibility')) {
+      allowed.background_color = updates.background_color;
+      allowed.colorblind_mode = updates.colorblind_mode;
+    }
+    return allowed;
   }
   const [form, setForm] = useState({ ...DEFAULTS, ...currentPerson });
   const [saving, setSaving] = useState(false);
@@ -110,7 +131,7 @@ export default function SettingsPanel({ onClose, onManageChoices }) {
 
   async function save() {
     setSaving(true);
-    const { error } = await savePerson(form);
+    const { error } = await savePerson(filterUpdates(form));
     setSaving(false);
     if (error) toast('Erreur lors de la sauvegarde');
     else { toast('Paramètres sauvegardés ✓'); onClose(); }

@@ -170,12 +170,21 @@ export const supabase = {
 
 export async function getMyPersons(userId) {
   const r = await fetch(
-    `${SUPABASE_URL}/rest/v1/user_persons?select=role,person:persons(*)&user_id=eq.${userId}`,
+    `${SUPABASE_URL}/rest/v1/user_persons?select=id,role,is_admin,can_edit_pictos,can_edit_complexity,can_edit_display,can_edit_accessibility,person:persons(*)&user_id=eq.${userId}`,
     { headers: authHeaders() }
   );
   if (!r.ok) return [];
   const data = await r.json();
-  return data.map((row) => ({ ...row.person, role: row.role }));
+  return data.map((row) => ({
+    ...row.person,
+    role: row.role,
+    user_person_id: row.id,
+    is_admin: row.is_admin,
+    can_edit_pictos: row.can_edit_pictos,
+    can_edit_complexity: row.can_edit_complexity,
+    can_edit_display: row.can_edit_display,
+    can_edit_accessibility: row.can_edit_accessibility,
+  }));
 }
 
 export async function createPerson(userId, displayName) {
@@ -234,37 +243,39 @@ export async function joinPersonByTag(userId, tagString) {
     role: 'helper',
   });
   if (error) return { data: null, error };
+  // Notifier le propriétaire
+  try {
+    const ownerRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_persons?person_id=eq.${person.id}&role=eq.owner&select=user_id`,
+      { headers: authHeaders() }
+    );
+    const owners = await ownerRes.json();
+    if (owners?.[0]) {
+      const userRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/users?id=eq.${owners[0].user_id}&select=email`,
+        { headers: authHeaders() }
+      );
+      const users = await userRes.json();
+      if (users?.[0]?.email) {
+        const helperRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=first_name,last_name,context`,
+          { headers: authHeaders() }
+        );
+        const helpers = await helperRes.json();
+        const helper = helpers?.[0];
+        fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ownerEmail: users[0].email,
+            helperName: `${helper?.first_name || ''} ${helper?.last_name || ''}`.trim() || 'Un nouvel aidant',
+            helperContext: helper?.context || '',
+            personName: person.display_name,
+          }),
+        });
+      }
+    }
+  } catch(e) {}
+
   return { data: person, error: null };
-}
-
-export async function getPersonChoices(personId) {
-  const r = await fetch(
-    `${SUPABASE_URL}/rest/v1/pictogram_choices?person_id=eq.${personId}&select=word,arasaac_id`,
-    { headers: authHeaders() }
-  );
-  if (!r.ok) return {};
-  const data = await r.json();
-  const map = {};
-  data.forEach((row) => { map[row.word] = row.arasaac_id; });
-  return map;
-}
-
-export async function deletePerson(personId) {
-  // Supprime la personne et tout ce qui va avec (cascade)
-  const r = await fetch(
-    `${SUPABASE_URL}/rest/v1/persons?id=eq.${personId}`,
-    { method: 'DELETE', headers: authHeaders() }
-  );
-  if (!r.ok) return { error: { message: await r.text() } };
-  return { error: null };
-}
-
-export async function unlinkPerson(userId, personId) {
-  // Supprime juste le lien user_persons
-  const r = await fetch(
-    `${SUPABASE_URL}/rest/v1/user_persons?user_id=eq.${userId}&person_id=eq.${personId}`,
-    { method: 'DELETE', headers: authHeaders() }
-  );
-  if (!r.ok) return { error: { message: await r.text() } };
-  return { error: null };
 }
