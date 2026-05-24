@@ -342,3 +342,14 @@ input[type=range] {
 .voice-btn.active { border-color: var(--accent); background: var(--accent-light); }
 .voice-emoji { font-size: 24px; }
 .voice-label { font-size: 12px; font-weight: 600; color: var(--text); }
+
+/* Sections verrouillées */
+.settings-section.locked {
+  opacity: 0.6;
+}
+.settings-section.locked .settings-section-header {
+  cursor: not-allowed;
+}
+.settings-section.locked .settings-section-header:hover {
+  background: none;
+}

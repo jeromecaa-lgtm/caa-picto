@@ -1,22 +1,15 @@
-import { useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { useProfile } from '../context/ProfileContext';
-import '../styles/header.css';
+import UserMenu from './UserMenu';
+import '../styles/user-menu.css';
 
 export default function Header({ onSettingsToggle, onRename }) {
   const { currentPerson, clearCurrentPerson } = useProfile();
-  const [loggingOut, setLoggingOut] = useState(false);
-
-  async function logout() {
-    setLoggingOut(true);
-    await supabase.auth.signOut();
-  }
 
   return (
     <header className="topbar">
       <div className="topbar-logo">Picto ✦</div>
 
-      <button className="topbar-person" onClick={clearCurrentPerson} title="Changer de profil" style={{ flex: 1, maxWidth: 220 }}>
+      <button className="topbar-person" onClick={clearCurrentPerson} title="Changer de profil">
         <div className="topbar-person-avatar">
           {currentPerson?.display_name?.charAt(0).toUpperCase()}
         </div>
@@ -43,9 +36,7 @@ export default function Header({ onSettingsToggle, onRename }) {
           </svg>
           Paramètres
         </button>
-        <button className="btn btn-ghost btn-sm" onClick={logout} disabled={loggingOut}>
-          {loggingOut ? '...' : 'Déconnexion'}
-        </button>
+        <UserMenu />
       </div>
     </header>
   );
