@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useProfile } from '../context/ProfileContext';
 import { toast } from './Toast';
 
 const SUPABASE_URL = 'https://mtjvzikhalwdpglaxmeb.supabase.co';
