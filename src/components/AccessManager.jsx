@@ -50,7 +50,7 @@ function AccessRow({ access, onUpdate, onRevoke, isCurrentUser }) {
 
   return (
     <div className="access-row">
-      <div className="access-row-header" onClick={() => !isCurrentUser && setExpanded(v => !v)}>
+      <div className="access-row-header" onClick={() => !isCurrentUser && access.role !== 'owner' && setExpanded(v => !v)}>
         <div className="access-avatar">
           {(access.user_name || '?').charAt(0).toUpperCase()}
         </div>
@@ -61,7 +61,7 @@ function AccessRow({ access, onUpdate, onRevoke, isCurrentUser }) {
         <div className={`access-badge ${access.role === 'owner' ? 'owner' : access.is_admin ? 'admin' : 'helper'}`}>
           {access.role === 'owner' ? 'Propriétaire' : access.is_admin ? 'Admin' : 'Aidant'}
         </div>
-        {!isCurrentUser && (
+        {!isCurrentUser && access.role !== 'owner' && (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
             style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: '0.2s', flexShrink: 0 }}>
             <polyline points="6 9 12 15 18 9"/>
@@ -69,7 +69,7 @@ function AccessRow({ access, onUpdate, onRevoke, isCurrentUser }) {
         )}
       </div>
 
-      {expanded && !isCurrentUser && (
+      {expanded && !isCurrentUser && access.role !== 'owner' && (
         <div className="access-perms">
           <div className="toggle-row">
             <span style={{ fontWeight: 600 }}>Accès admin complet</span>
