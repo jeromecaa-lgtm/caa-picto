@@ -56,8 +56,9 @@ function Toggle({ value, onChange }) {
   return <div className={`toggle ${value ? 'on' : ''}`} onClick={() => onChange(!value)} />;
 }
 
-function Section({ title, summary, children }) {
+function Section({ title, summary, children, hidden }) {
   const [open, setOpen] = useState(false);
+  if (hidden) return null;
   return (
     <div className={`settings-section ${open ? 'open' : ''}`}>
       <button className="settings-section-header" onClick={() => setOpen(v => !v)}>
@@ -77,24 +78,18 @@ function Section({ title, summary, children }) {
 }
 
 export default function SettingsPanel({ onClose, onManageChoices }) {
-  const { currentPerson, savePerson, persons } = useProfile();
+  const { currentPerson, savePerson } = useProfile();
   const { user } = useAuth();
 
   const isOwner = currentPerson?.role === 'owner';
-  console.log('currentPerson perms:', {
-  role: currentPerson?.role,
-  is_admin: currentPerson?.is_admin,
-  can_edit_pictos: currentPerson?.can_edit_pictos,
-  can_edit_complexity: currentPerson?.can_edit_complexity,
-});
-  const isAdmin = isOwner || !!currentPerson?.is_admin;
+  const isAdmin = !!currentPerson?.is_admin;
 
   function canEdit(key) {
-    if (isOwner || isAdmin) return true;
+    if (isOwner) return true;
+    if (isAdmin) return true;
     return !!currentPerson?.[key];
   }
 
-  // Filtrer les updates selon les permissions réelles
   function filterUpdates(updates) {
     if (isOwner || isAdmin) return updates;
     const allowed = {};
@@ -116,6 +111,7 @@ export default function SettingsPanel({ onClose, onManageChoices }) {
     }
     return allowed;
   }
+
   const [form, setForm] = useState({ ...DEFAULTS, ...currentPerson });
   const [saving, setSaving] = useState(false);
 
@@ -240,13 +236,13 @@ export default function SettingsPanel({ onClose, onManageChoices }) {
           </button>
         </Section>
 
-      </div>
-
         {(isOwner || isAdmin) && (
           <Section title={`Accès partagés — ${currentPerson?.display_name}`} summary="Gérer qui a accès à ce profil">
             <AccessManager />
           </Section>
         )}
+
+      </div>
 
       <div className="settings-footer">
         <button className="btn btn-ghost" onClick={onClose}>Annuler</button>
