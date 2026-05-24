@@ -37,9 +37,11 @@ function AccessRow({ access, onUpdate, onRevoke, isCurrentUser }) {
 
   async function savePerms() {
     setSaving(true);
+    const ALLOWED = ['is_admin','can_edit_pictos','can_edit_complexity','can_edit_display','can_edit_accessibility'];
+    const clean = Object.fromEntries(Object.entries(perms).filter(([k]) => ALLOWED.includes(k)));
     const r = await authFetch(
       `user_persons?id=eq.${access.id}`,
-      { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(perms) }
+      { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(clean) }
     );
     setSaving(false);
     if (r.ok) { onUpdate(perms); toast('Permissions mises à jour ✓'); }
@@ -112,16 +114,31 @@ export default function AccessManager() {
 
   async function loadAccesses() {
     setLoading(true);
+    // 1. Charger les liens user_persons
     const r = await authFetch(
-      `user_persons?person_id=eq.${currentPerson.id}&select=*,user:users(first_name,last_name,email,context)`
+      `user_persons?person_id=eq.${currentPerson.id}&select=*`
     );
-    const data = await r.json();
-    setAccesses(data.map(row => ({
-      ...row,
-      user_name: row.user ? `${row.user.first_name || ''} ${row.user.last_name || ''}`.trim() || row.user.email : '',
-      user_email: row.user?.email,
-      user_context: row.user?.context,
-    })));
+    const links = await r.json();
+
+    // 2. Charger les infos des users en parallèle
+    const userIds = links.map(l => l.user_id);
+    const usersRes = await authFetch(
+      `users?id=in.(${userIds.join(',')})&select=id,email,first_name,last_name,context`
+    );
+    const users = await usersRes.json();
+    const usersMap = {};
+    users.forEach(u => { usersMap[u.id] = u; });
+
+    setAccesses(links.map(row => {
+      const u = usersMap[row.user_id] || {};
+      const name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || '';
+      return {
+        ...row,
+        user_name: name,
+        user_email: u.email,
+        user_context: u.context,
+      };
+    }));
     setLoading(false);
   }
 
