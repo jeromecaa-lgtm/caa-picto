@@ -81,6 +81,12 @@ export default function SettingsPanel({ onClose, onManageChoices }) {
   const { user } = useAuth();
 
   const isOwner = currentPerson?.role === 'owner';
+  console.log('currentPerson perms:', {
+  role: currentPerson?.role,
+  is_admin: currentPerson?.is_admin,
+  can_edit_pictos: currentPerson?.can_edit_pictos,
+  can_edit_complexity: currentPerson?.can_edit_complexity,
+});
   const isAdmin = isOwner || !!currentPerson?.is_admin;
 
   function canEdit(key) {
