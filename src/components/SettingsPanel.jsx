@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { useAuth } from '../context/AuthContext';
+import AccessManager from './AccessManager';
 import { toast } from './Toast';
 import '../styles/settings.css';
 
@@ -213,6 +214,12 @@ export default function SettingsPanel({ onClose, onManageChoices }) {
         </Section>
 
       </div>
+
+        {isOwner && (
+          <Section title={`Accès partagés — ${currentPerson?.display_name}`} summary="Gérer qui a accès à ce profil">
+            <AccessManager />
+          </Section>
+        )}
 
       <div className="settings-footer">
         <button className="btn btn-ghost" onClick={onClose}>Annuler</button>

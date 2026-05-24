@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useProfile } from '../context/ProfileContext';
 import { toast } from './Toast';
 
 const SUPABASE_URL = 'https://mtjvzikhalwdpglaxmeb.supabase.co';
@@ -45,20 +46,18 @@ function AccessRow({ access, onUpdate, onRevoke, isCurrentUser }) {
     else toast('Erreur lors de la mise à jour');
   }
 
-  function setPerm(key, value) {
-    setPerms(p => ({ ...p, [key]: value }));
-  }
-
   return (
     <div className="access-row">
-      <div className="access-row-header" onClick={() => setExpanded(v => !v)}>
-        <div className="access-avatar">{(access.user_name || '?').charAt(0).toUpperCase()}</div>
+      <div className="access-row-header" onClick={() => !isCurrentUser && setExpanded(v => !v)}>
+        <div className="access-avatar">
+          {(access.user_name || '?').charAt(0).toUpperCase()}
+        </div>
         <div className="access-info">
           <div className="access-name">{access.user_name || access.user_email}</div>
           {access.user_context && <div className="access-context">{access.user_context}</div>}
         </div>
-        <div className={`access-badge ${access.is_admin ? 'admin' : 'helper'}`}>
-          {access.is_admin ? 'Admin' : 'Aidant'}
+        <div className={`access-badge ${access.role === 'owner' ? 'owner' : access.is_admin ? 'admin' : 'helper'}`}>
+          {access.role === 'owner' ? 'Propriétaire' : access.is_admin ? 'Admin' : 'Aidant'}
         </div>
         {!isCurrentUser && (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -72,7 +71,7 @@ function AccessRow({ access, onUpdate, onRevoke, isCurrentUser }) {
         <div className="access-perms">
           <div className="toggle-row">
             <span style={{ fontWeight: 600 }}>Accès admin complet</span>
-            <Toggle value={!!perms.is_admin} onChange={v => setPerm('is_admin', v)} />
+            <Toggle value={!!perms.is_admin} onChange={v => setPerms(p => ({ ...p, is_admin: v }))} />
           </div>
           {!perms.is_admin && (
             <div className="access-perms-detail">
@@ -82,14 +81,14 @@ function AccessRow({ access, onUpdate, onRevoke, isCurrentUser }) {
                     <div style={{ fontSize: 14 }}>{p.label}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.desc}</div>
                   </div>
-                  <Toggle value={!!perms[p.key]} onChange={v => setPerm(p.key, v)} />
+                  <Toggle value={!!perms[p.key]} onChange={v => setPerms(prev => ({ ...prev, [p.key]: v }))} />
                 </div>
               ))}
             </div>
           )}
           <div style={{ display: 'flex', gap: 10, marginTop: 12, justifyContent: 'space-between' }}>
             <button className="btn btn-danger btn-sm" onClick={() => onRevoke(access.id)}>
-              Révoquer l'accès
+              Révoquer
             </button>
             <button className="btn btn-primary btn-sm" onClick={savePerms} disabled={saving}>
               {saving ? '...' : 'Enregistrer'}
@@ -101,64 +100,55 @@ function AccessRow({ access, onUpdate, onRevoke, isCurrentUser }) {
   );
 }
 
-export default function UserProfilePanel({ onClose }) {
-  const { user, userProfile, updateUserProfile } = useAuth();
+export default function AccessManager() {
+  const { user } = useAuth();
   const { currentPerson } = useProfile();
-  const [form, setForm] = useState({
-    first_name: userProfile?.first_name || '',
-    last_name: userProfile?.last_name || '',
-    context: userProfile?.context || '',
-  });
-  const [saving, setSaving] = useState(false);
+  const [accesses, setAccesses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (currentPerson) loadAccesses();
+  }, [currentPerson?.id]);
 
-  async function saveProfile() {
-    setSaving(true);
-    const { error } = await updateUserProfile(form);
-    setSaving(false);
-    if (error) toast('Erreur lors de la sauvegarde');
-    else toast('Profil mis à jour ✓');
+  async function loadAccesses() {
+    setLoading(true);
+    const r = await authFetch(
+      `user_persons?person_id=eq.${currentPerson.id}&select=*,user:users(first_name,last_name,email,context)`
+    );
+    const data = await r.json();
+    setAccesses(data.map(row => ({
+      ...row,
+      user_name: row.user ? `${row.user.first_name || ''} ${row.user.last_name || ''}`.trim() || row.user.email : '',
+      user_email: row.user?.email,
+      user_context: row.user?.context,
+    })));
+    setLoading(false);
   }
 
+  async function revokeAccess(userPersonId) {
+    if (!confirm('Révoquer cet accès ?')) return;
+    await authFetch(`user_persons?id=eq.${userPersonId}`, { method: 'DELETE' });
+    setAccesses(a => a.filter(x => x.id !== userPersonId));
+    toast('Accès révoqué');
+  }
 
+  function updateAccess(updated) {
+    setAccesses(a => a.map(x => x.id === updated.id ? { ...x, ...updated } : x));
+  }
+
+  if (loading) return <div style={{ color: 'var(--text-muted)', fontSize: 14, padding: '8px 0' }}>Chargement...</div>;
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal-box" style={{ maxWidth: 560 }}>
-        <div className="modal-header">
-          <div className="modal-title">Mon profil</div>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-
-        {/* Infos personnelles */}
-        <div className="profile-section">
-          <h3 className="profile-section-title">Mes informations</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div className="field">
-              <label>Prénom</label>
-              <input type="text" value={form.first_name}
-                onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} />
-            </div>
-            <div className="field">
-              <label>Nom</label>
-              <input type="text" value={form.last_name}
-                onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} />
-            </div>
-          </div>
-          <div className="field">
-            <label>Contexte</label>
-            <input type="text" value={form.context} placeholder="Ex : Père, Orthophoniste..."
-              onChange={e => setForm(f => ({ ...f, context: e.target.value }))} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button className="btn btn-primary btn-sm" onClick={saveProfile} disabled={saving}>
-              {saving ? 'Sauvegarde...' : 'Enregistrer'}
-            </button>
-          </div>
-        </div>
-
-
-      </div>
+    <div className="accesses-list">
+      {accesses.map(a => (
+        <AccessRow
+          key={a.id}
+          access={a}
+          onUpdate={updateAccess}
+          onRevoke={revokeAccess}
+          isCurrentUser={a.user_id === user?.id}
+        />
+      ))}
     </div>
   );
 }
