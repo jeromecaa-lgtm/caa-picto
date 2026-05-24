@@ -149,7 +149,7 @@ export default function SettingsPanel({ onClose, onManageChoices }) {
 
       <div className="settings-sections">
 
-        <Section title="Niveau de complexité" summary={complexityLabel} locked={!canEdit('can_edit_complexity')}>
+        <Section title="Niveau de complexité" summary={complexityLabel} hidden={!canEdit('can_edit_complexity')}>
           <div className="complexity-presets">
             {Object.entries(COMPLEXITY_PRESETS).map(([key, preset]) => (
               <button key={key}
@@ -162,7 +162,7 @@ export default function SettingsPanel({ onClose, onManageChoices }) {
           </div>
         </Section>
 
-        <Section title="Taille des pictogrammes" summary={sizeLabel} locked={!canEdit('can_edit_display')}>
+        <Section title="Taille des pictogrammes" summary={sizeLabel} hidden={!canEdit('can_edit_display')}>
           <div className="size-presets">
             {PICTO_SIZES.map(s => (
               <button key={s.value}
@@ -177,7 +177,7 @@ export default function SettingsPanel({ onClose, onManageChoices }) {
           </div>
         </Section>
 
-        <Section title="Affichage" summary={`Durée ${speedLabel} · Max ${form.max_pictograms} pictos`} locked={!canEdit('can_edit_display')}>
+        <Section title="Affichage" summary={`Durée ${speedLabel} · Max ${form.max_pictograms} pictos`} hidden={!canEdit('can_edit_display')}>
           <div className="slider-row">
             <label>Durée d'affichage <span>{speedLabel}</span></label>
             <input type="range" min="2000" max="10000" step="500"
@@ -192,7 +192,7 @@ export default function SettingsPanel({ onClose, onManageChoices }) {
           </div>
         </Section>
 
-        <Section title="Accessibilité" summary={form.colorblind_mode ? 'Mode daltonien activé' : ''} locked={!canEdit('can_edit_accessibility')}>
+        <Section title="Accessibilité" summary={form.colorblind_mode ? 'Mode daltonien activé' : ''} hidden={!canEdit('can_edit_accessibility')}>
           <div className="color-row">
             <label>Couleur de fond</label>
             <input type="color" value={form.background_color || '#F0EDE8'}
@@ -228,7 +228,7 @@ export default function SettingsPanel({ onClose, onManageChoices }) {
           </div>
         </Section>
 
-        <Section title="Pictogrammes mémorisés" summary="Voir et gérer les choix enregistrés" locked={!canEdit('can_edit_pictos')}>
+        <Section title="Pictogrammes mémorisés" summary="Voir et gérer les choix enregistrés" hidden={!canEdit('can_edit_pictos')}>
           <button className="btn btn-ghost" style={{ width: '100%', marginTop: 4 }} onClick={onManageChoices}>
             Gérer les pictogrammes mémorisés →
           </button>
@@ -236,7 +236,7 @@ export default function SettingsPanel({ onClose, onManageChoices }) {
 
       </div>
 
-        {isOwner && (
+        {(isOwner || isAdmin) && (
           <Section title={`Accès partagés — ${currentPerson?.display_name}`} summary="Gérer qui a accès à ce profil">
             <AccessManager />
           </Section>
