@@ -279,3 +279,32 @@ export async function joinPersonByTag(userId, tagString) {
 
   return { data: person, error: null };
 }
+export async function deletePerson(personId) {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/persons?id=eq.${personId}`,
+    { method: 'DELETE', headers: authHeaders() }
+  );
+  if (!r.ok) return { error: { message: await r.text() } };
+  return { error: null };
+}
+
+export async function unlinkPerson(userId, personId) {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/user_persons?user_id=eq.${userId}&person_id=eq.${personId}`,
+    { method: 'DELETE', headers: authHeaders() }
+  );
+  if (!r.ok) return { error: { message: await r.text() } };
+  return { error: null };
+}
+
+export async function getPersonChoices(personId) {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/pictogram_choices?person_id=eq.${personId}&select=word,arasaac_id`,
+    { headers: authHeaders() }
+  );
+  if (!r.ok) return {};
+  const data = await r.json();
+  const map = {};
+  data.forEach((row) => { map[row.word] = row.arasaac_id; });
+  return map;
+}
